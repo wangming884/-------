@@ -262,8 +262,7 @@ onMounted(() => {
 
 <style scoped>
 .book-detail-container {
-  max-width: 1000px;
-  margin: 0 auto;
+  width: 100%;
 }
 .book-title {
   font-size: 24px;

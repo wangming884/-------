@@ -160,8 +160,7 @@ onMounted(() => {
 
 <style scoped>
 .feedback-container {
-  max-width: 1100px;
-  margin: 0 auto;
+  width: 100%;
 }
 .feedback-item {
   padding: 16px;

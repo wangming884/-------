@@ -1,5 +1,5 @@
 <template>
-  <el-container style="height: 100vh">
+  <el-container class="portal-layout">
     <!-- 顶部导航 -->
     <el-header class="portal-header">
       <div class="header-content">
@@ -54,13 +54,17 @@ const handleLogout = () => {
   padding: 0;
   height: 60px !important;
 }
+.portal-layout {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
 .header-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 20px;
+  padding: 0 28px;
 }
 .logo {
   display: flex;
@@ -76,6 +80,7 @@ const handleLogout = () => {
 }
 .top-menu {
   flex: 1;
+  min-width: 0;
   border: none !important;
 }
 .user-info {
@@ -88,9 +93,8 @@ const handleLogout = () => {
   color: #606266;
 }
 .portal-main {
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
+  flex: 1;
   padding: 20px;
   background: #f5f7fa;
   min-height: calc(100vh - 120px);
@@ -103,5 +107,40 @@ const handleLogout = () => {
   border-top: 1px solid #ebeef5;
   height: 40px !important;
   line-height: 40px;
+}
+
+@media (max-width: 768px) {
+  .portal-header {
+    height: auto !important;
+  }
+
+  .header-content {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 8px 12px 0;
+  }
+
+  .logo {
+    margin-right: 0;
+  }
+
+  .top-menu {
+    order: 3;
+    flex: 0 0 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .top-menu :deep(.el-menu-item) {
+    padding: 0 12px;
+  }
+
+  .user-info {
+    margin-left: auto;
+  }
+
+  .portal-main {
+    padding: 12px;
+  }
 }
 </style>

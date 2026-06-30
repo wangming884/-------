@@ -23,6 +23,12 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
             return;
         }
 
+        addColumnIfMissing(
+                "seat_reservation",
+                "update_time",
+                "ALTER TABLE seat_reservation ADD COLUMN update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER create_time"
+        );
+
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS book_review (
                     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -39,5 +45,24 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
                     FOREIGN KEY (reader_id) REFERENCES reader(id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图书书评表'
                 """);
+    }
+
+    private void addColumnIfMissing(String tableName, String columnName, String alterSql) {
+        Integer tableCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+                Integer.class,
+                tableName);
+        if (tableCount == null || tableCount == 0) {
+            return;
+        }
+
+        Integer columnCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?",
+                Integer.class,
+                tableName,
+                columnName);
+        if (columnCount == null || columnCount == 0) {
+            jdbcTemplate.execute(alterSql);
+        }
     }
 }

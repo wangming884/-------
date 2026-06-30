@@ -183,8 +183,7 @@ onMounted(() => {
 
 <style scoped>
 .seat-page {
-  max-width: 1000px;
-  margin: 0 auto;
+  width: 100%;
 }
 .filter-card {
   margin-bottom: 16px;

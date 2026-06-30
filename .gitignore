@@ -1,0 +1,10 @@
+target/
+target-deploy/
+target-verify/
+
+frontend/node_modules/
+frontend/dist/
+
+.env
+*.log
+*.tmp

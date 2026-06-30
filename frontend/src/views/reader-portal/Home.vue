@@ -118,8 +118,8 @@ const newBooks = ref([])
 const borrowRank = ref([])
 
 const announcementTagType = (type) => {
-  const map = { 1: '', 2: 'success', 3: 'warning' }
-  return map[type] || ''
+  const map = { 1: 'info', 2: 'success', 3: 'warning' }
+  return map[type] || 'info'
 }
 
 const announcementTypeLabel = (type) => {
@@ -173,8 +173,7 @@ onMounted(() => {
 
 <style scoped>
 .home-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 .search-banner {
   text-align: center;

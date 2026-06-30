@@ -186,8 +186,7 @@ onMounted(() => {
 
 <style scoped>
 .search-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 .search-form-card {
   margin-bottom: 20px;

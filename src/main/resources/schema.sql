@@ -281,6 +281,7 @@ CREATE TABLE IF NOT EXISTS seat_reservation (
     check_in_time DATETIME COMMENT '签到时间',
     status TINYINT DEFAULT 1 COMMENT '状态 1预约中 2已签到 3已释放 4未签到(违约)',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (reader_id) REFERENCES reader(id),
     FOREIGN KEY (seat_id) REFERENCES seat(id)
 ) ENGINE=InnoDB COMMENT='座位预约表';

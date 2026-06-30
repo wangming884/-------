@@ -6,9 +6,11 @@ rem ===== 基本路径 =====
 set "PROJECT_DIR=%~dp0"
 set "APP_NAME=library"
 set "FRONTEND_DIR=%PROJECT_DIR%frontend"
-set "WAR_FILE=%PROJECT_DIR%target\%APP_NAME%.war"
+set "DEPLOY_ROOT=%PROJECT_DIR%target-deploy"
+set "BUILD_DIR=%DEPLOY_ROOT%\build-%RANDOM%-%RANDOM%"
+set "WAR_FILE=%BUILD_DIR%\%APP_NAME%.war"
 set "TOMCAT_ZIP=apache-tomcat-9.0.102-windows-x64.zip"
-set "TOMCAT_URL=https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.102/bin/%TOMCAT_ZIP%"
+set "TOMCAT_URL=https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.102/bin/%TOMCAT_ZIP%"
 set "TOMCAT_LOCAL=%PROJECT_DIR%tomcat"
 set "CONFIG_FILE=%PROJECT_DIR%tomcat-path.txt"
 set "TOOLS_DIR=%PROJECT_DIR%tools"
@@ -16,11 +18,11 @@ set "TOOLS_CONFIG=%PROJECT_DIR%tools-path.txt"
 
 rem 下载地址（Adoptium JDK 17 / Maven 3.9 / Node.js 22 LTS）
 set "JDK_ZIP=OpenJDK17U-jdk_x64_windows_hotspot_17.0.15_6.zip"
-set "JDK_URL=https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.15%2B6/%JDK_ZIP%"
+set "JDK_URL=https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.15%%2B6/%JDK_ZIP%"
 set "JDK_DIR_NAME=jdk-17.0.15+6"
 
 set "MVN_ZIP=apache-maven-3.9.9-bin.zip"
-set "MVN_URL=https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/%MVN_ZIP%"
+set "MVN_URL=https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/%MVN_ZIP%"
 set "MVN_DIR_NAME=apache-maven-3.9.9"
 
 set "NODE_ZIP=node-v22.16.0-win-x64.zip"
@@ -47,14 +49,22 @@ if exist "%TOOLS_CONFIG%" (
         if "%%a"=="MAVEN_HOME" set "MAVEN_HOME=%%b"
         if "%%a"=="NODE_HOME"  set "NODE_HOME=%%b"
     )
-    if defined JAVA_HOME  if exist "!JAVA_HOME!\bin\java.exe"  set "PATH=!JAVA_HOME!\bin;!PATH!"
-    if defined MAVEN_HOME if exist "!MAVEN_HOME!\bin\mvn.cmd"  set "PATH=!MAVEN_HOME!\bin;!PATH!"
-    if defined NODE_HOME  if exist "!NODE_HOME!\node.exe"      set "PATH=!NODE_HOME!\;!PATH!"
+    if defined JAVA_HOME (
+        if exist "!JAVA_HOME!\bin\java.exe" set "PATH=!JAVA_HOME!\bin;!PATH!"
+    )
+    if defined MAVEN_HOME (
+        if exist "!MAVEN_HOME!\bin\mvn.cmd" set "PATH=!MAVEN_HOME!\bin;!PATH!"
+    )
+    if defined NODE_HOME (
+        if exist "!NODE_HOME!\node.exe" set "PATH=!NODE_HOME!\;!PATH!"
+    )
 )
 
 rem --- Java ---
 set "NEED_JDK=0"
 java -version >nul 2>&1
+if %errorlevel% neq 0 set "NEED_JDK=1"
+javac -version >nul 2>&1
 if %errorlevel% neq 0 set "NEED_JDK=1"
 
 if "!NEED_JDK!"=="1" (
@@ -76,7 +86,7 @@ echo.
 
 rem --- Maven ---
 set "NEED_MVN=0"
-mvn -version >nul 2>&1
+call mvn -version >nul 2>&1
 if %errorlevel% neq 0 set "NEED_MVN=1"
 
 if "!NEED_MVN!"=="1" (
@@ -92,13 +102,15 @@ if "!NEED_MVN!"=="1" (
     set "NEED_MVN=0"
 )
 
-for /f "tokens=*" %%v in ('mvn -version 2^>^&1 ^| findstr /i "Apache Maven"') do set "MVN_VER=%%v"
+for /f "tokens=*" %%v in ('mvn -version 2^>^&1 ^| findstr /i /c:"Apache Maven"') do set "MVN_VER=%%v"
 echo         Maven:   %MVN_VER%
 echo.
 
 rem --- Node.js / npm ---
 set "NEED_NODE=0"
-npm -v >nul 2>&1
+call npm -v >nul 2>&1
+if %errorlevel% neq 0 set "NEED_NODE=1"
+node -v >nul 2>&1
 if %errorlevel% neq 0 set "NEED_NODE=1"
 
 if "!NEED_NODE!"=="1" (
@@ -121,9 +133,22 @@ echo.
 echo  [环境检查通过]
 echo.
 
+if /i "%~1"=="--check" (
+    echo  环境检查完成，未执行构建和部署。
+    echo.
+    pause
+    exit /b 0
+)
+
 rem =====================================================
 rem  第二步：Tomcat 配置
 rem =====================================================
+if /i "%~1"=="--build-only" (
+    echo  [2/6] 跳过 Tomcat 配置（--build-only）
+    echo.
+    goto :build_frontend_step
+)
+
 echo  [2/6] 配置 Tomcat...
 echo.
 
@@ -257,6 +282,7 @@ echo.
 rem =====================================================
 rem  第三步：构建前端
 rem =====================================================
+:build_frontend_step
 echo  [3/6] 构建前端...
 echo.
 
@@ -264,6 +290,16 @@ pushd "%FRONTEND_DIR%"
 if %errorlevel% neq 0 (
     echo  [错误] 无法进入前端目录：%FRONTEND_DIR%
     goto :fail
+)
+
+if not exist "node_modules" (
+    echo  未找到 node_modules，正在执行 npm install...
+    call npm install
+    if %errorlevel% neq 0 (
+        popd
+        echo  [错误] npm install 失败
+        goto :fail
+    )
 )
 
 call npm run build
@@ -283,7 +319,8 @@ echo  [4/6] Maven 打包...
 echo.
 
 pushd "%PROJECT_DIR%"
-call mvn clean package -DskipTests
+if not exist "%DEPLOY_ROOT%" mkdir "%DEPLOY_ROOT%" >nul 2>&1
+call mvn "-Ddeploy.build.directory=%BUILD_DIR%" clean package -DskipTests
 if %errorlevel% neq 0 (
     popd
     echo  [错误] Maven 打包失败
@@ -295,7 +332,20 @@ if not exist "%WAR_FILE%" (
     echo  [错误] 未找到 WAR 文件：%WAR_FILE%
     goto :fail
 )
+call :cleanup_old_builds
 echo  [Maven 打包完成]
+
+if /i "%~1"=="--build-only" (
+    echo.
+    echo  ╔══════════════════════════════════════════╗
+    echo  ║  构建完成，已跳过 Tomcat 部署            ║
+    echo  ╚══════════════════════════════════════════╝
+    echo.
+    echo  WAR 文件：%WAR_FILE%
+    echo.
+    pause
+    exit /b 0
+)
 
 rem =====================================================
 rem  第五步：停止旧 Tomcat 并部署
@@ -361,6 +411,18 @@ pause
 exit /b 0
 
 rem =====================================================
+rem  清理旧构建目录，保留本次 BUILD_DIR
+rem =====================================================
+:cleanup_old_builds
+if not exist "%DEPLOY_ROOT%" exit /b 0
+for /d %%D in ("%DEPLOY_ROOT%\build-*") do (
+    if /i not "%%~fD"=="%BUILD_DIR%" (
+        rd /s /q "%%~fD" 2>nul
+    )
+)
+exit /b 0
+
+rem =====================================================
 rem  工具下载子程序
 rem  参数：%1=名称  %2=URL  %3=zip文件名  %4=解压后目录名  %5=环境变量名
 rem =====================================================
@@ -414,13 +476,29 @@ set "%_ENV%=%_EXTRACT_DIR%"
 set "PATH=%_EXTRACT_DIR%\bin;%_EXTRACT_DIR%;!PATH!"
 
 rem 保存到配置文件
-if exist "%TOOLS_CONFIG%" (
-    powershell -Command "(Get-Content '%TOOLS_CONFIG%') -replace '^%_ENV%=.*', '' | Set-Content '%TOOLS_CONFIG%'"
-)
-echo %_ENV%=%_EXTRACT_DIR%>>"%TOOLS_CONFIG%"
+call :save_tool_path "%_ENV%" "%_EXTRACT_DIR%"
 
 echo  [✓ %_NAME% 安装完成：%_EXTRACT_DIR%]
 echo.
+exit /b 0
+
+:save_tool_path
+set "_SAVE_ENV=%~1"
+set "_SAVE_PATH=%~2"
+set "_TOOLS_TMP=%TOOLS_CONFIG%.tmp"
+
+if not exist "%TOOLS_CONFIG%" (
+    echo %_SAVE_ENV%=%_SAVE_PATH%>"%TOOLS_CONFIG%"
+    exit /b 0
+)
+
+(
+    for /f "usebackq tokens=1,* delims==" %%a in ("%TOOLS_CONFIG%") do (
+        if /i not "%%a"=="%_SAVE_ENV%" echo %%a=%%b
+    )
+    echo %_SAVE_ENV%=%_SAVE_PATH%
+) > "%_TOOLS_TMP%"
+move /y "%_TOOLS_TMP%" "%TOOLS_CONFIG%" >nul
 exit /b 0
 
 rem =====================================================

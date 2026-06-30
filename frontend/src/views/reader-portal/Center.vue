@@ -436,8 +436,7 @@ onMounted(() => {
 
 <style scoped>
 .center-container {
-  max-width: 1000px;
-  margin: 0 auto;
+  width: 100%;
 }
 .pagination {
   margin-top: 16px;
