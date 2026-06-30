@@ -29,6 +29,12 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
                 "ALTER TABLE seat_reservation ADD COLUMN update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER create_time"
         );
 
+        addColumnIfMissing(
+                "feedback",
+                "update_time",
+                "ALTER TABLE feedback ADD COLUMN update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER reply_time"
+        );
+
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS book_review (
                     id BIGINT PRIMARY KEY AUTO_INCREMENT,
