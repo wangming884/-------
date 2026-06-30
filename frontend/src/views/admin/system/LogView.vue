@@ -94,8 +94,10 @@ const fetchData = async () => {
       endDate: filters.dateRange?.[1] || undefined
     }
     const res = await getLogs(params)
-    tableData.value = res.data.records || res.data.list || res.data
-    pagination.total = res.data.total || 0
+    const pageData = res.data || {}
+    const records = pageData.records || pageData.list || pageData
+    tableData.value = Array.isArray(records) ? records : []
+    pagination.total = Number(pageData.total || tableData.value.length || 0)
   } catch {
     // handled
   } finally {

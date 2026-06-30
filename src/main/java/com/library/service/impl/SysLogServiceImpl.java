@@ -1,6 +1,5 @@
 package com.library.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.library.common.PageResult;
@@ -8,9 +7,9 @@ import com.library.entity.SysLog;
 import com.library.mapper.SysLogMapper;
 import com.library.service.SysLogService;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 public class SysLogServiceImpl extends ServiceImpl<SysLogMapper, SysLog> implements SysLogService {
@@ -43,29 +42,10 @@ public class SysLogServiceImpl extends ServiceImpl<SysLogMapper, SysLog> impleme
     @Override
     public PageResult<SysLog> listPage(int page, int size, String keyword, Integer status,
                                        String operator, String operation, LocalDate startDate, LocalDate endDate) {
-        LambdaQueryWrapper<SysLog> wrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(keyword)) {
-            wrapper.and(w -> w.like(SysLog::getOperation, keyword)
-                    .or().like(SysLog::getAdminName, keyword)
-                    .or().like(SysLog::getMethod, keyword)
-                    .or().like(SysLog::getParams, keyword));
-        }
-        if (StringUtils.hasText(operator)) {
-            wrapper.like(SysLog::getAdminName, operator);
-        }
-        if (StringUtils.hasText(operation)) {
-            wrapper.like(SysLog::getOperation, operation);
-        }
-        if (status != null) wrapper.eq(SysLog::getStatus, status);
-        if (startDate != null) {
-            wrapper.ge(SysLog::getCreateTime, startDate.atStartOfDay());
-        }
-        if (endDate != null) {
-            wrapper.lt(SysLog::getCreateTime, endDate.plusDays(1).atStartOfDay());
-        }
-        wrapper.orderByDesc(SysLog::getCreateTime);
-
-        Page<SysLog> result = logMapper.selectPage(new Page<>(page, size), wrapper);
+        LocalDateTime startTime = startDate == null ? null : startDate.atStartOfDay();
+        LocalDateTime endTime = endDate == null ? null : endDate.plusDays(1).atStartOfDay();
+        Page<SysLog> result = logMapper.selectLogPage(new Page<>(page, size), keyword, status,
+                operator, operation, startTime, endTime);
         return new PageResult<>(result.getRecords(), result.getTotal(), page, size);
     }
 }
