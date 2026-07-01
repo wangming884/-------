@@ -38,6 +38,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(operationLogInterceptor)
                 .addPathPatterns("/api/admin/**")
-                .excludePathPatterns("/api/admin/logs/**");
+                .excludePathPatterns("/api/admin/logs", "/api/admin/logs/**");
     }
 }

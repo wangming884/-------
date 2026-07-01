@@ -44,7 +44,7 @@ public class OperationLogInterceptor implements HandlerInterceptor {
             return;
         }
 
-        String operation = request.getMethod() + " " + request.getRequestURI();
+        String operation = request.getMethod() + " " + requestPath(request);
         int status = ex == null && response.getStatus() < 400 ? 1 : 0;
         try {
             logService.log(
@@ -62,11 +62,28 @@ public class OperationLogInterceptor implements HandlerInterceptor {
     }
 
     private boolean shouldLog(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        return uri != null
-                && uri.startsWith("/api/admin/")
-                && !uri.startsWith("/api/admin/logs")
+        String path = requestPath(request);
+        return path.startsWith("/api/admin/")
+                && !path.startsWith("/api/admin/logs")
                 && WRITE_METHODS.contains(request.getMethod());
+    }
+
+    private String requestPath(HttpServletRequest request) {
+        String path = request.getServletPath();
+        if (StringUtils.hasText(path)) {
+            return path;
+        }
+
+        String uri = request.getRequestURI();
+        if (!StringUtils.hasText(uri)) {
+            return "";
+        }
+
+        String contextPath = request.getContextPath();
+        if (StringUtils.hasText(contextPath) && uri.startsWith(contextPath)) {
+            return uri.substring(contextPath.length());
+        }
+        return uri;
     }
 
     private LoginUser currentUser() {
